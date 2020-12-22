@@ -14,7 +14,7 @@ print 'Testing Outcome Sampling (OS) CFR'
 print ''
 print ''
 
-"""
+
 print 'Computing NE for Kuhn poker'
 kuhn = kuhn_rules()
 
@@ -30,7 +30,7 @@ for block in range(blocks):
     print 'Total exploitability: {0}'.format(sum(result[1]))
 print 'Done!'
 print ''
-"""
+
 
 """
 print 'Computing NE for Half-Street Kuhn poker'
@@ -67,18 +67,18 @@ print 'Done!'
 print ''
 """
 
-print 'Computing NE for Leduc poker'
-leduc = leduc_rules()
+# print 'Computing NE for Leduc poker'
+# leduc = leduc_rules()
 
-cfr = OutcomeSamplingCFR(leduc)
+# cfr = OutcomeSamplingCFR(leduc)
 
-iterations_per_block = 10000
-blocks = 1000
-for block in range(blocks):
-    print 'Iterations: {0}'.format(block * iterations_per_block)
-    cfr.run(iterations_per_block)
-    result = cfr.profile.best_response()
-    print 'Best response EV: {0}'.format(result[1])
-    print 'Total exploitability: {0}'.format(sum(result[1]))
-print 'Done!'
-print ''
+# iterations_per_block = 10000
+# blocks = 1000
+# for block in range(blocks):
+#     print 'Iterations: {0}'.format(block * iterations_per_block)
+#     cfr.run(iterations_per_block)
+#     result = cfr.profile.best_response()
+#     print 'Best response EV: {0}'.format(result[1])
+#     print 'Total exploitability: {0}'.format(sum(result[1]))
+# print 'Done!'
+# print ''

@@ -518,7 +518,7 @@ class OutcomeSamplingCFR(ChanceSamplingCFR):
     def cfr_regret_update(self, root, ev, action, actionprob):
         hc = self.holecards[root.player][0:len(root.holecards[root.player])]
         infoset = self.rules.infoset_format(root.player, hc, root.board, root.bet_history)
-        for i in range(3):
+        for i in range(3): # action index -> FOLD, CALL, RAISE
             if not root.valid(i):
                 continue
             immediate_cfr = -ev * actionprob
