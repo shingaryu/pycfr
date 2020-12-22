@@ -1,4 +1,5 @@
 from pokertrees import *
+from card import *
 
 def kuhn_eval(hc, board):
     return hc[0].rank
