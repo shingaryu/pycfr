@@ -58,9 +58,10 @@ class OSCFRBatch(ChanceSamplingCFR):
                 root = random.choice(root.children)
                 continue                
 
-            strategy = self.cfr_strategy_update(root, reachprobs, sampleprobs)
             hc = self.holecards[root.player][0:len(root.holecards[root.player])]
             infoset = self.rules.infoset_format(root.player, hc, root.board, root.bet_history)
+            equal_probs = self.equal_probs(root)
+            strategy = self.cfr_strategy_update(reachprobs, sampleprobs, infoset, root.player, equal_probs)
             action_probs = strategy.probs(infoset)
             if random.random() < self.exploration:
                 action = self.random_action(root)
@@ -78,8 +79,16 @@ class OSCFRBatch(ChanceSamplingCFR):
 
         weakenedPayoffs = terminalPayoffs
         for history in reversed(histories):
-            self.cfr_regret_update(history["node"], weakenedPayoffs[history["node"].player], history["action"], history["actionprob"])
-            weakenedPayoffs[history["node"].player] *= history["actionprob"]
+            root = history["node"]
+            ev = weakenedPayoffs[history["node"].player]
+            action = history["action"]
+            actionprob = history["actionprob"]
+            hc = self.holecards[root.player][0:len(root.holecards[root.player])]
+            infoset = self.rules.infoset_format(root.player, hc, root.board, root.bet_history)
+            valid_actions = [i for i in range(3) if root.valid(i)]
+            player = root.player
+            self.cfr_regret_update(ev, action, actionprob, infoset, valid_actions, player)
+            weakenedPayoffs[history["node"].player] *= actionprob
 
 
     def update_regrets(self, terminalUtility):
@@ -95,43 +104,37 @@ class OSCFRBatch(ChanceSamplingCFR):
             options.append(RAISE)
         return random.choice(options)
 
-    def cfr_strategy_update(self, root, reachprobs, sampleprobs):
+    def cfr_strategy_update(self, reachprobs, sampleprobs, infoset, player, equal_probs):
         # Update the strategies and regrets for each infoset
-        hc = self.holecards[root.player][0:len(root.holecards[root.player])]
-        infoset = self.rules.infoset_format(root.player, hc, root.board, root.bet_history)
         # Get the current CFR
-        prev_cfr = self.counterfactual_regret[root.player][infoset]
+        prev_cfr = self.counterfactual_regret[player][infoset]
         # Get the total positive CFR
         sumpos_cfr = float(sum([max(0,x) for x in prev_cfr]))
         if sumpos_cfr == 0:
             # Default strategy is equal probability
-            probs = self.equal_probs(root)
+            probs = equal_probs
         else:
             # Use the strategy that's proportional to accumulated positive CFR
             probs = [max(0,x) / sumpos_cfr for x in prev_cfr]
         # Use the updated strategy as our current strategy
-        self.current_profile.strategies[root.player].policy[infoset] = probs
+        self.current_profile.strategies[player].policy[infoset] = probs
 
         # Update the weighted policy probabilities (used to recover the average strategy)
         for i in range(3):
-            self.action_reachprobs[root.player][infoset][i] += reachprobs[root.player] * probs[i] / sampleprobs
-        if sum(self.action_reachprobs[root.player][infoset]) == 0:
+            self.action_reachprobs[player][infoset][i] += reachprobs[player] * probs[i] / sampleprobs
+        if sum(self.action_reachprobs[player][infoset]) == 0:
             # Default strategy is equal weight
-            self.profile.strategies[root.player].policy[infoset] = self.equal_probs(root)
+            self.profile.strategies[player].policy[infoset] = equal_probs
         else:
             # Recover the weighted average strategy
-            self.profile.strategies[root.player].policy[infoset] = [self.action_reachprobs[root.player][infoset][i] / sum(self.action_reachprobs[root.player][infoset]) for i in range(3)]
+            self.profile.strategies[player].policy[infoset] = [self.action_reachprobs[player][infoset][i] / sum(self.action_reachprobs[player][infoset]) for i in range(3)]
         # Return and use the current CFR strategy
 
-        return self.current_profile.strategies[root.player]
+        return self.current_profile.strategies[player]
 
-    def cfr_regret_update(self, root, ev, action, actionprob):
-        hc = self.holecards[root.player][0:len(root.holecards[root.player])]
-        infoset = self.rules.infoset_format(root.player, hc, root.board, root.bet_history)
-        for i in range(3): # action index -> FOLD, CALL, RAISE
-            if not root.valid(i):
-                continue
+    def cfr_regret_update(self, ev, action, actionprob, infoset, valid_actions, player):
+        for i in valid_actions:
             immediate_cfr = -ev * actionprob
             if action == i:
                 immediate_cfr += ev
-            self.counterfactual_regret[root.player][infoset][i] += immediate_cfr
+            self.counterfactual_regret[player][infoset][i] += immediate_cfr
