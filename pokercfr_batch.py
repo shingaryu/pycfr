@@ -15,9 +15,11 @@ class OSCFRBatch(object):
         print 'Information sets: {0}'.format(len(self.tree.information_sets))
         for s in self.profile.strategies:
             s.build_default(self.tree)
-            self.counterfactual_regret.append({ infoset: [0,0,0] for infoset in s.policy })
+            # self.counterfactual_regret.append({ infoset: [0,0,0] for infoset in s.policy })
             self.action_reachprobs.append({ infoset: [0,0,0] for infoset in s.policy })
         self.exploration = exploration
+        self.counterfactual_regret = [ {} for _ in range(rules.players)]
+        self.num_of_actions = 3
 
     def run(self, num_iterations):
         for iteration in range(num_iterations):
@@ -143,7 +145,12 @@ class OSCFRBatch(object):
     def cfr_strategy_update(self, reachprobs, sampleprobs, infoset, player, equal_probs):
         # Update the strategies and regrets for each infoset
         # Get the current CFR
-        prev_cfr = self.counterfactual_regret[player][infoset]
+        prev_cfr = None
+        if infoset in self.counterfactual_regret[player]:
+            prev_cfr = self.counterfactual_regret[player][infoset]
+        else:
+            prev_cfr = [0 for _ in range(self.num_of_actions)]
+
         # Get the total positive CFR
         sumpos_cfr = float(sum([max(0,x) for x in prev_cfr]))
         if sumpos_cfr == 0:
@@ -169,6 +176,9 @@ class OSCFRBatch(object):
         return self.current_profile.strategies[player]
 
     def cfr_regret_update(self, ev, action, actionprob, infoset, valid_actions, player):
+        if infoset not in self.counterfactual_regret[player]:
+            self.counterfactual_regret[player][infoset] = [0 for _ in range(self.num_of_actions)] 
+
         for i in valid_actions:
             immediate_cfr = -ev * actionprob
             if action == i:
