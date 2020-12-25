@@ -1,11 +1,22 @@
 from pokertrees import *
 from pokerstrategy import *
 import random
-from pokercfr import CounterfactualRegretMinimizer
 
-class OSCFRBatch(CounterfactualRegretMinimizer):
+class OSCFRBatch(object):
     def __init__(self, rules, exploration=0.4):
-        CounterfactualRegretMinimizer.__init__(self, rules)
+        self.rules = rules
+        self.profile = StrategyProfile(rules, [Strategy(i) for i in range(rules.players)])
+        self.current_profile = StrategyProfile(rules, [Strategy(i) for i in range(rules.players)])
+        self.iterations = 0
+        self.counterfactual_regret = []
+        self.action_reachprobs = []
+        self.tree = PublicTree(rules)
+        self.tree.build()
+        print 'Information sets: {0}'.format(len(self.tree.information_sets))
+        for s in self.profile.strategies:
+            s.build_default(self.tree)
+            self.counterfactual_regret.append({ infoset: [0,0,0] for infoset in s.policy })
+            self.action_reachprobs.append({ infoset: [0,0,0] for infoset in s.policy })
         self.exploration = exploration
 
     def run(self, num_iterations):
@@ -45,6 +56,17 @@ class OSCFRBatch(CounterfactualRegretMinimizer):
             if self.board[next_card] not in node.board:
                 return False
         return True
+
+    def equal_probs(self, root):
+        total_actions = len(root.children)
+        probs = [0,0,0]
+        if root.fold_action:
+            probs[FOLD] = 1.0 / total_actions
+        if root.call_action:
+            probs[CALL] = 1.0 / total_actions
+        if root.raise_action:
+            probs[RAISE] = 1.0 / total_actions
+        return probs
 
     def simulate_episode(self):
         root = self.tree.root
