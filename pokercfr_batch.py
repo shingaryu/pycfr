@@ -16,9 +16,10 @@ class OSCFRBatch(object):
         for s in self.profile.strategies:
             s.build_default(self.tree)
             # self.counterfactual_regret.append({ infoset: [0,0,0] for infoset in s.policy })
-            self.action_reachprobs.append({ infoset: [0,0,0] for infoset in s.policy })
+            # self.action_reachprobs.append({ infoset: [0,0,0] for infoset in s.policy })
         self.exploration = exploration
         self.counterfactual_regret = [ {} for _ in range(rules.players)]
+        self.action_reachprobs = [ {} for _ in range(rules.players)]
         self.num_of_actions = 3
 
     def run(self, num_iterations):
@@ -163,7 +164,10 @@ class OSCFRBatch(object):
         self.current_profile.strategies[player].policy[infoset] = probs
 
         # Update the weighted policy probabilities (used to recover the average strategy)
-        for i in range(3):
+        if infoset not in self.action_reachprobs[player]:
+            self.action_reachprobs[player][infoset] = [0 for _ in range(self.num_of_actions)] 
+
+        for i in range(self.num_of_actions):
             self.action_reachprobs[player][infoset][i] += reachprobs[player] * probs[i] / sampleprobs
         if sum(self.action_reachprobs[player][infoset]) == 0:
             # Default strategy is equal weight
