@@ -71,28 +71,22 @@ class OSCFRBatch(ChanceSamplingCFR):
             csp = self.exploration * (1.0 / len(root.children)) + (1.0 - self.exploration) * action_probs[action]
             sampleprobs *= csp
 
-            histories.append({ "node": root, "action": action, "actionprob": action_probs[action]})
+            histories.append((root, action, action_probs[action]))
 
             root = root.get_child(action)
 
         # print 'simulation done'
 
         discountedPayoffs = terminalPayoffs
-        for history in reversed(histories):
-            root = history["node"]
-            ev = discountedPayoffs[history["node"].player]
-            action = history["action"]
-            actionprob = history["actionprob"]
+        for node, action, actionprob in reversed(histories):
+            root = node
+            ev = discountedPayoffs[root.player]
             hc = self.holecards[root.player][0:len(root.holecards[root.player])]
             infoset = self.rules.infoset_format(root.player, hc, root.board, root.bet_history)
             valid_actions = [i for i in range(3) if root.valid(i)]
             player = root.player
             self.cfr_regret_update(ev, action, actionprob, infoset, valid_actions, player)
-            discountedPayoffs[history["node"].player] *= actionprob
-
-
-    def update_regrets(self, terminalUtility):
-        pass
+            discountedPayoffs[root.player] *= actionprob
 
     def random_action(self, root):
         options = []
