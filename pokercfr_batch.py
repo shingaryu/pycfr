@@ -77,10 +77,10 @@ class OSCFRBatch(ChanceSamplingCFR):
 
         # print 'simulation done'
 
-        weakenedPayoffs = terminalPayoffs
+        discountedPayoffs = terminalPayoffs
         for history in reversed(histories):
             root = history["node"]
-            ev = weakenedPayoffs[history["node"].player]
+            ev = discountedPayoffs[history["node"].player]
             action = history["action"]
             actionprob = history["actionprob"]
             hc = self.holecards[root.player][0:len(root.holecards[root.player])]
@@ -88,7 +88,7 @@ class OSCFRBatch(ChanceSamplingCFR):
             valid_actions = [i for i in range(3) if root.valid(i)]
             player = root.player
             self.cfr_regret_update(ev, action, actionprob, infoset, valid_actions, player)
-            weakenedPayoffs[history["node"].player] *= actionprob
+            discountedPayoffs[history["node"].player] *= actionprob
 
 
     def update_regrets(self, terminalUtility):
