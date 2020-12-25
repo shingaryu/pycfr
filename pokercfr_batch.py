@@ -1,11 +1,11 @@
 from pokertrees import *
 from pokerstrategy import *
 import random
-from pokercfr import ChanceSamplingCFR
+from pokercfr import CounterfactualRegretMinimizer
 
-class OSCFRBatch(ChanceSamplingCFR):
+class OSCFRBatch(CounterfactualRegretMinimizer):
     def __init__(self, rules, exploration=0.4):
-        ChanceSamplingCFR.__init__(self, rules)
+        CounterfactualRegretMinimizer.__init__(self, rules)
         self.exploration = exploration
 
     def run(self, num_iterations):
@@ -25,6 +25,26 @@ class OSCFRBatch(ChanceSamplingCFR):
         # Set the top card of the deck
         self.top_card = len(todeal) - boardcards_per_hand
 
+    def terminal_match(self, hands):
+        for p in range(self.rules.players):
+            if not self.hcmatch(hands[p], p):
+                return False
+        return True
+
+    def hcmatch(self, hc, player):
+        # Checks if this hand is isomorphic to the sampled hand
+        sampled = self.holecards[player][:len(hc)]
+        for c in hc:
+            if c not in sampled:
+                return False
+        return True
+
+    def boardmatch(self, num_dealt, node):
+        # Checks if this node is a match for the sampled board card(s)
+        for next_card in range(0, len(node.board)):
+            if self.board[next_card] not in node.board:
+                return False
+        return True
 
     def simulate_episode(self):
         root = self.tree.root
