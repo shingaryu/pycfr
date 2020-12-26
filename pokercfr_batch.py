@@ -108,8 +108,8 @@ class PokerEnv(object):
 class BatchOSCFR(object):
     def __init__(self, rules, env, exploration=0.4):
         self.rules = rules
-        self.profile = StrategyProfile(rules, [Strategy(i) for i in range(rules.players)])
-        self.current_profile = StrategyProfile(rules, [Strategy(i) for i in range(rules.players)])
+        self.sampling_strategies = [ {} for _ in range(rules.players)]
+        self.average_strategies = [ {} for _ in range(rules.players)]        
         self.iterations = 0
         self.counterfactual_regret = []
         self.action_reachprobs = []
@@ -122,10 +122,18 @@ class BatchOSCFR(object):
 
     def run(self, num_iterations):
         for iteration in range(num_iterations):
-            # self.cfr()
             self.simulate_episode()
             self.iterations += 1
 
+    def sample_action(self, strategy, infoset):
+        probs = strategy[infoset]
+        val = random.random()
+        total = 0
+        for i,p in enumerate(probs):
+            total += p
+            if p > 0 and val <= total:
+                return i
+        raise Exception('Invalid probability distribution. Infoset: {0} Probs: {1}'.format(infoset, probs))
 
     def simulate_episode(self):
         player, infoset, valid_actions, reward, isFinished = self.env.reset()
@@ -135,11 +143,11 @@ class BatchOSCFR(object):
         histories = []
         while True:
             strategy = self.cfr_strategy_update(reachprobs, sampleprobs, infoset, player, valid_actions)
-            action_probs = strategy.probs(infoset)
+            action_probs = strategy[infoset]
             if random.random() < self.exploration:
                 action = random.choice(valid_actions)
             else:
-                action = strategy.sample_action(infoset)
+                action = self.sample_action(strategy, infoset)
             reachprobs[player] *= action_probs[action]
             csp = self.exploration * (1.0 / len(valid_actions)) + (1.0 - self.exploration) * action_probs[action]
             sampleprobs *= csp
@@ -185,7 +193,7 @@ class BatchOSCFR(object):
             # Use the strategy that's proportional to accumulated positive CFR
             probs = [max(0,x) / sumpos_cfr for x in prev_cfr]
         # Use the updated strategy as our current strategy
-        self.current_profile.strategies[player].policy[infoset] = probs
+        self.sampling_strategies[player][infoset] = probs
 
         # Update the weighted policy probabilities (used to recover the average strategy)
         if infoset not in self.action_reachprobs[player]:
@@ -195,13 +203,14 @@ class BatchOSCFR(object):
             self.action_reachprobs[player][infoset][i] += reachprobs[player] * probs[i] / sampleprobs
         if sum(self.action_reachprobs[player][infoset]) == 0:
             # Default strategy is equal weight
-            self.profile.strategies[player].policy[infoset] = equal_probs
+            self.average_strategies[player][infoset] = equal_probs
+
         else:
             # Recover the weighted average strategy
-            self.profile.strategies[player].policy[infoset] = [self.action_reachprobs[player][infoset][i] / sum(self.action_reachprobs[player][infoset]) for i in range(3)]
+            self.average_strategies[player][infoset] = [self.action_reachprobs[player][infoset][i] / sum(self.action_reachprobs[player][infoset]) for i in range(3)]
         # Return and use the current CFR strategy
 
-        return self.current_profile.strategies[player]
+        return self.sampling_strategies[player]
 
     def cfr_regret_update(self, ev, action, actionprob, infoset, valid_actions, player):
         if infoset not in self.counterfactual_regret[player]:
@@ -212,6 +221,20 @@ class BatchOSCFR(object):
             if action == i:
                 immediate_cfr += ev
             self.counterfactual_regret[player][infoset][i] += immediate_cfr
+
+# Replicate StrategyProfile for best_response()
+class BatchOSCFRWithSP(BatchOSCFR):
+    def __init__(self, rules, env, exploration=0.4):
+        BatchOSCFR.__init__(self, rules, env, exploration)
+        self.profile = StrategyProfile(rules, [Strategy(i) for i in range(rules.players)])
+        self.current_profile = StrategyProfile(rules, [Strategy(i) for i in range(rules.players)])      
+
+    def cfr_strategy_update(self, reachprobs, sampleprobs, infoset, player, valid_actions):
+        strategy = BatchOSCFR.cfr_strategy_update(self, reachprobs, sampleprobs, infoset, player, valid_actions)
+        self.current_profile.strategies[player].policy[infoset] = self.sampling_strategies[player][infoset]
+        self.profile.strategies[player].policy[infoset] = self.average_strategies[player][infoset]
+        return strategy
+
 
 
 

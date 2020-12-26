@@ -21,7 +21,8 @@ kuhn = kuhn_rules()
 
 # cfr = OSCFRBatch(kuhn)
 env = PokerEnv(kuhn)
-cfr = BatchOSCFR(kuhn, env)
+# cfr = BatchOSCFR(kuhn, env)
+cfr = BatchOSCFRWithSP(kuhn, env)
 
 iterations_per_block = 10000
 blocks = 100
