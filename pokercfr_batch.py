@@ -3,7 +3,7 @@ from pokerstrategy import *
 import random
 
 class PokerEnv(object):
-    def __init__(self, rules, exploration=0.4):
+    def __init__(self, rules):
         self.rules = rules
         self.tree = PublicTree(rules)
         self.tree.build()
@@ -54,7 +54,6 @@ class PokerEnv(object):
             probs[RAISE] = 1.0 / total_actions
         return probs
 
-
     def reset(self):
         self.cfr()
         self.root = root = self.tree.root.children[0]
@@ -65,7 +64,6 @@ class PokerEnv(object):
         equal_probs = self.equal_probs(root)
 
         return root, infoset, valid_actions, equal_probs, 0, False
-
 
     def step(self, action):
         self.root = root = self.root.get_child(action)
@@ -79,7 +77,7 @@ class PokerEnv(object):
                     if not self.terminal_match(hands):
                         continue
                     for player in range(self.rules.players):
-                        prob = 1.0
+                        # prob = 1.0
                         # for opp,hc in enumerate(hands):
                         #     if opp != player:
                         #         prob *= reachprobs[opp]
@@ -117,13 +115,6 @@ class BatchOSCFR(object):
         self.iterations = 0
         self.counterfactual_regret = []
         self.action_reachprobs = []
-        self.tree = PublicTree(rules)
-        self.tree.build()
-        print 'Information sets: {0}'.format(len(self.tree.information_sets))
-        for s in self.profile.strategies:
-            s.build_default(self.tree)
-            # self.counterfactual_regret.append({ infoset: [0,0,0] for infoset in s.policy })
-            # self.action_reachprobs.append({ infoset: [0,0,0] for infoset in s.policy })
         self.exploration = exploration
         self.counterfactual_regret = [ {} for _ in range(rules.players)]
         self.action_reachprobs = [ {} for _ in range(rules.players)]
@@ -149,7 +140,7 @@ class BatchOSCFR(object):
             strategy = self.cfr_strategy_update(reachprobs, sampleprobs, infoset, root.player, equal_probs)
             action_probs = strategy.probs(infoset)
             if random.random() < self.exploration:
-                action = self.random_action(root)
+                action = random.choice(valid_actions)
             else:
                 action = strategy.sample_action(infoset)
             reachprobs[root.player] *= action_probs[action]
@@ -178,16 +169,6 @@ class BatchOSCFR(object):
             player = root.player
             self.cfr_regret_update(ev, action, actionprob, infoset, valid_actions, player)
             discountedPayoffs[root.player] *= actionprob
-
-    def random_action(self, root):
-        options = []
-        if root.fold_action:
-            options.append(FOLD)
-        if root.call_action:
-            options.append(CALL)
-        if root.raise_action:
-            options.append(RAISE)
-        return random.choice(options)
 
     def cfr_strategy_update(self, reachprobs, sampleprobs, infoset, player, equal_probs):
         # Update the strategies and regrets for each infoset
