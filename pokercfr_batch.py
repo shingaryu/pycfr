@@ -62,7 +62,7 @@ class PokerEnv(object):
         infoset = self.rules.infoset_format(root.player, hc, root.board, root.bet_history)
         valid_actions = [i for i in range(3) if root.valid(i)]
 
-        return root, infoset, valid_actions, 0, False
+        return root.player, infoset, valid_actions, 0, False
 
     def step(self, action):
         self.root = root = self.root.get_child(action)
@@ -99,7 +99,7 @@ class PokerEnv(object):
         infoset = self.rules.infoset_format(root.player, hc, root.board, root.bet_history)
         valid_actions = [i for i in range(3) if root.valid(i)]
 
-        return root, infoset, valid_actions, 0, False
+        return root.player, infoset, valid_actions, 0, False
 
 
 
@@ -128,26 +128,25 @@ class BatchOSCFR(object):
 
 
     def simulate_episode(self):
-        node, infoset, valid_actions, reward, isFinished = self.env.reset()
-        root = node
+        player, infoset, valid_actions, reward, isFinished = self.env.reset()
         terminalPayoffs = []
         reachprobs = [1 for _ in range(self.rules.players)]
         sampleprobs = 1.0
         histories = []
         while True:
-            strategy = self.cfr_strategy_update(reachprobs, sampleprobs, infoset, root.player, valid_actions)
+            strategy = self.cfr_strategy_update(reachprobs, sampleprobs, infoset, player, valid_actions)
             action_probs = strategy.probs(infoset)
             if random.random() < self.exploration:
                 action = random.choice(valid_actions)
             else:
                 action = strategy.sample_action(infoset)
-            reachprobs[root.player] *= action_probs[action]
-            csp = self.exploration * (1.0 / len(root.children)) + (1.0 - self.exploration) * action_probs[action]
+            reachprobs[player] *= action_probs[action]
+            csp = self.exploration * (1.0 / len(valid_actions)) + (1.0 - self.exploration) * action_probs[action]
             sampleprobs *= csp
 
-            histories.append((root, infoset, valid_actions, action, action_probs[action]))
+            histories.append((player, infoset, valid_actions, action, action_probs[action]))
 
-            root, infoset, valid_actions, reward, isFinished = self.env.step(action)
+            player, infoset, valid_actions, reward, isFinished = self.env.step(action)
             if (isFinished):
                 terminalPayoffs = reward
 
@@ -161,12 +160,10 @@ class BatchOSCFR(object):
                 break
             
         discountedPayoffs = terminalPayoffs
-        for node, infoset, valid_actions, action, actionprob in reversed(histories):
-            root = node
-            ev = discountedPayoffs[root.player]
-            player = root.player
+        for player, infoset, valid_actions, action, actionprob in reversed(histories):
+            ev = discountedPayoffs[player]
             self.cfr_regret_update(ev, action, actionprob, infoset, valid_actions, player)
-            discountedPayoffs[root.player] *= actionprob
+            discountedPayoffs[player] *= actionprob
 
     def cfr_strategy_update(self, reachprobs, sampleprobs, infoset, player, valid_actions):
         equal_probs = [1.0 / len(valid_actions) if action in valid_actions else 0 for action in range(self.num_of_actions) ]
