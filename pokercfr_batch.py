@@ -61,9 +61,10 @@ class PokerEnv(object):
 
         hc = self.holecards[root.player][0:len(root.holecards[root.player])]
         infoset = self.rules.infoset_format(root.player, hc, root.board, root.bet_history)
+        valid_actions = [i for i in range(3) if root.valid(i)]
         equal_probs = self.equal_probs(root)
 
-        return root, infoset, equal_probs, 0, False
+        return root, infoset, valid_actions, equal_probs, 0, False
 
 
     def step(self, action):
@@ -85,7 +86,7 @@ class PokerEnv(object):
                         # payoffs[player] = prob * winnings[player] / sampleprobs
                         payoffs[player] = winnings[player]
 
-                return (None, None, None, payoffs, True)
+                return (None, None, None, None, payoffs, True)
 
             if type(root) is HolecardChanceNode:
                 assert(len(root.children) == 1)
@@ -99,9 +100,10 @@ class PokerEnv(object):
 
         hc = self.holecards[root.player][0:len(root.holecards[root.player])]
         infoset = self.rules.infoset_format(root.player, hc, root.board, root.bet_history)
+        valid_actions = [i for i in range(3) if root.valid(i)]
         equal_probs = self.equal_probs(root)
 
-        return root, infoset, equal_probs, 0, False
+        return root, infoset, valid_actions, equal_probs, 0, False
 
 
 
@@ -137,7 +139,7 @@ class BatchOSCFR(object):
 
 
     def simulate_episode(self):
-        node, infoset, equal_probs, reward, isFinished = self.env.reset()
+        node, infoset, valid_actions, equal_probs, reward, isFinished = self.env.reset()
         root = node
         terminalPayoffs = []
         reachprobs = [1 for _ in range(self.rules.players)]
@@ -154,9 +156,9 @@ class BatchOSCFR(object):
             csp = self.exploration * (1.0 / len(root.children)) + (1.0 - self.exploration) * action_probs[action]
             sampleprobs *= csp
 
-            histories.append((root, infoset, action, action_probs[action]))
+            histories.append((root, infoset, valid_actions, action, action_probs[action]))
 
-            root, infoset, equal_probs, reward, isFinished = self.env.step(action)
+            root, infoset, valid_actions, equal_probs, reward, isFinished = self.env.step(action)
             if (isFinished):
                 terminalPayoffs = reward
 
@@ -170,10 +172,9 @@ class BatchOSCFR(object):
                 break
             
         discountedPayoffs = terminalPayoffs
-        for node, infoset, action, actionprob in reversed(histories):
+        for node, infoset, valid_actions, action, actionprob in reversed(histories):
             root = node
             ev = discountedPayoffs[root.player]
-            valid_actions = [i for i in range(3) if root.valid(i)]
             player = root.player
             self.cfr_regret_update(ev, action, actionprob, infoset, valid_actions, player)
             discountedPayoffs[root.player] *= actionprob
