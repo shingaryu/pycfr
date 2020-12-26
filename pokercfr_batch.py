@@ -5,22 +5,9 @@ import random
 class PokerEnv(object):
     def __init__(self, rules, exploration=0.4):
         self.rules = rules
-        # self.profile = StrategyProfile(rules, [Strategy(i) for i in range(rules.players)])
-        # self.current_profile = StrategyProfile(rules, [Strategy(i) for i in range(rules.players)])
-        # self.iterations = 0
-        # self.counterfactual_regret = []
-        # self.action_reachprobs = []
         self.tree = PublicTree(rules)
         self.tree.build()
         print 'Information sets: {0}'.format(len(self.tree.information_sets))
-        # for s in self.profile.strategies:
-            # s.build_default(self.tree)
-            # self.counterfactual_regret.append({ infoset: [0,0,0] for infoset in s.policy })
-            # self.action_reachprobs.append({ infoset: [0,0,0] for infoset in s.policy })
-        # self.exploration = exploration
-        # self.counterfactual_regret = [ {} for _ in range(rules.players)]
-        # self.action_reachprobs = [ {} for _ in range(rules.players)]
-        # self.num_of_actions = 3
 
         self.root = None
 
@@ -80,11 +67,8 @@ class PokerEnv(object):
 
 
     def step(self, action):
-        terminalPayoffs = []
-
         self.root = root = self.root.get_child(action)
 
-        # root = self.root
         while True:
             if type(root) is TerminalNode:
                 # return self.cfr_terminal_node(root, reachprobs, sampleprobs)
@@ -101,7 +85,6 @@ class PokerEnv(object):
                         # payoffs[player] = prob * winnings[player] / sampleprobs
                         payoffs[player] = winnings[player]
 
-                # terminalPayoffs = payoffs
                 return (None, None, None, payoffs, True)
 
             if type(root) is HolecardChanceNode:
@@ -161,35 +144,6 @@ class BatchOSCFR(object):
         sampleprobs = 1.0
         histories = []
         while True:
-            # if type(root) is TerminalNode:
-            #     # return self.cfr_terminal_node(root, reachprobs, sampleprobs)
-            #     # set terminal utility
-            #     payoffs = [0 for _ in range(self.rules.players)]
-            #     for hands,winnings in root.payoffs.items():
-            #         if not self.terminal_match(hands):
-            #             continue
-            #         for player in range(self.rules.players):
-            #             prob = 1.0
-            #             for opp,hc in enumerate(hands):
-            #                 if opp != player:
-            #                     prob *= reachprobs[opp]
-            #             payoffs[player] = prob * winnings[player] / sampleprobs
-
-            #     terminalPayoffs = payoffs
-            #     break
-
-            # if type(root) is HolecardChanceNode:
-            #     assert(len(root.children) == 1)
-            #     root = root.children[0]
-            #     continue
-            # if type(root) is BoardcardChanceNode:
-            #     root = random.choice(root.children)
-            #     continue                
-
-            # hc = self.holecards[root.player][0:len(root.holecards[root.player])]
-            # infoset = self.rules.infoset_format(root.player, hc, root.board, root.bet_history)
-            # equal_probs = self.equal_probs(root)
-
             strategy = self.cfr_strategy_update(reachprobs, sampleprobs, infoset, root.player, equal_probs)
             action_probs = strategy.probs(infoset)
             if random.random() < self.exploration:
@@ -215,14 +169,10 @@ class BatchOSCFR(object):
 
                 break
             
-        # print 'simulation done'
-
         discountedPayoffs = terminalPayoffs
         for node, infoset, action, actionprob in reversed(histories):
             root = node
             ev = discountedPayoffs[root.player]
-            # hc = self.holecards[root.player][0:len(root.holecards[root.player])]
-            # infoset = self.rules.infoset_format(root.player, hc, root.board, root.bet_history)
             valid_actions = [i for i in range(3) if root.valid(i)]
             player = root.player
             self.cfr_regret_update(ev, action, actionprob, infoset, valid_actions, player)
