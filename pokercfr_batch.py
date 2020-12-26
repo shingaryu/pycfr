@@ -43,16 +43,16 @@ class PokerEnv(object):
                 return False
         return True
 
-    def equal_probs(self, root):
-        total_actions = len(root.children)
-        probs = [0,0,0]
-        if root.fold_action:
-            probs[FOLD] = 1.0 / total_actions
-        if root.call_action:
-            probs[CALL] = 1.0 / total_actions
-        if root.raise_action:
-            probs[RAISE] = 1.0 / total_actions
-        return probs
+    # def equal_probs(self, root):
+    #     total_actions = len(root.children)
+    #     probs = [0,0,0]
+    #     if root.fold_action:
+    #         probs[FOLD] = 1.0 / total_actions
+    #     if root.call_action:
+    #         probs[CALL] = 1.0 / total_actions
+    #     if root.raise_action:
+    #         probs[RAISE] = 1.0 / total_actions
+    #     return probs
 
     def reset(self):
         self.cfr()
@@ -61,9 +61,8 @@ class PokerEnv(object):
         hc = self.holecards[root.player][0:len(root.holecards[root.player])]
         infoset = self.rules.infoset_format(root.player, hc, root.board, root.bet_history)
         valid_actions = [i for i in range(3) if root.valid(i)]
-        equal_probs = self.equal_probs(root)
 
-        return root, infoset, valid_actions, equal_probs, 0, False
+        return root, infoset, valid_actions, 0, False
 
     def step(self, action):
         self.root = root = self.root.get_child(action)
@@ -84,7 +83,7 @@ class PokerEnv(object):
                         # payoffs[player] = prob * winnings[player] / sampleprobs
                         payoffs[player] = winnings[player]
 
-                return (None, None, None, None, payoffs, True)
+                return (None, None, None, payoffs, True)
 
             if type(root) is HolecardChanceNode:
                 assert(len(root.children) == 1)
@@ -99,9 +98,8 @@ class PokerEnv(object):
         hc = self.holecards[root.player][0:len(root.holecards[root.player])]
         infoset = self.rules.infoset_format(root.player, hc, root.board, root.bet_history)
         valid_actions = [i for i in range(3) if root.valid(i)]
-        equal_probs = self.equal_probs(root)
 
-        return root, infoset, valid_actions, equal_probs, 0, False
+        return root, infoset, valid_actions, 0, False
 
 
 
@@ -130,14 +128,14 @@ class BatchOSCFR(object):
 
 
     def simulate_episode(self):
-        node, infoset, valid_actions, equal_probs, reward, isFinished = self.env.reset()
+        node, infoset, valid_actions, reward, isFinished = self.env.reset()
         root = node
         terminalPayoffs = []
         reachprobs = [1 for _ in range(self.rules.players)]
         sampleprobs = 1.0
         histories = []
         while True:
-            strategy = self.cfr_strategy_update(reachprobs, sampleprobs, infoset, root.player, equal_probs)
+            strategy = self.cfr_strategy_update(reachprobs, sampleprobs, infoset, root.player, valid_actions)
             action_probs = strategy.probs(infoset)
             if random.random() < self.exploration:
                 action = random.choice(valid_actions)
@@ -149,7 +147,7 @@ class BatchOSCFR(object):
 
             histories.append((root, infoset, valid_actions, action, action_probs[action]))
 
-            root, infoset, valid_actions, equal_probs, reward, isFinished = self.env.step(action)
+            root, infoset, valid_actions, reward, isFinished = self.env.step(action)
             if (isFinished):
                 terminalPayoffs = reward
 
@@ -170,7 +168,9 @@ class BatchOSCFR(object):
             self.cfr_regret_update(ev, action, actionprob, infoset, valid_actions, player)
             discountedPayoffs[root.player] *= actionprob
 
-    def cfr_strategy_update(self, reachprobs, sampleprobs, infoset, player, equal_probs):
+    def cfr_strategy_update(self, reachprobs, sampleprobs, infoset, player, valid_actions):
+        equal_probs = [1.0 / len(valid_actions) if action in valid_actions else 0 for action in range(self.num_of_actions) ]
+
         # Update the strategies and regrets for each infoset
         # Get the current CFR
         prev_cfr = None
