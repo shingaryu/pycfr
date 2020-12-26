@@ -19,9 +19,11 @@ print ''
 print 'Computing NE for Kuhn poker'
 kuhn = kuhn_rules()
 
-cfr = OSCFRBatch(kuhn)
+# cfr = OSCFRBatch(kuhn)
+env = PokerEnv(kuhn)
+cfr = BatchOSCFR(kuhn, env)
 
-iterations_per_block = 1000
+iterations_per_block = 10000
 blocks = 100
 for block in range(blocks):
     print 'Iterations: {0}'.format(block * iterations_per_block)
