@@ -21,10 +21,8 @@ print ''
 print 'Computing NE for Kuhn poker'
 kuhn = kuhn_rules()
 
-# cfr = OSCFRBatch(kuhn)
 env = PokerEnv(kuhn)
-# cfr = BatchOSCFR(kuhn, env)
-cfr = EnvOSCFRWithSP(kuhn, env)
+cfr = EnvOSCFRWithSP(env)
 
 iterations_per_block = 10000
 blocks = 100

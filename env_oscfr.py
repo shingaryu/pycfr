@@ -1,21 +1,21 @@
 import random
 
 class EnvOSCFR(object):
-    def __init__(self, rules, env, exploration=0.4):
-        self.rules = rules
-        self.sampling_strategies = [ {} for _ in range(rules.players)]
-        self.average_strategies = [ {} for _ in range(rules.players)]        
+    def __init__(self, env, n_players, n_actions, exploration=0.4):
+        self.sampling_strategies = [ {} for _ in range(n_players)]
+        self.average_strategies = [ {} for _ in range(n_players)]        
         self.iterations = 0
         self.counterfactual_regret = []
         self.action_reachprobs = []
         self.exploration = exploration
-        self.counterfactual_regret = [ {} for _ in range(rules.players)]
-        self.action_reachprobs = [ {} for _ in range(rules.players)]
-        self.num_of_actions = 3
+        self.counterfactual_regret = [ {} for _ in range(n_players)]
+        self.action_reachprobs = [ {} for _ in range(n_players)]
         self.env = env
+        self.n_players = n_players
+        self.num_of_actions = n_actions
 
     def run(self, num_iterations):
-        for iteration in range(num_iterations):
+        for _ in range(num_iterations):
             self.simulate_episode()
             self.iterations += 1
 
@@ -32,7 +32,7 @@ class EnvOSCFR(object):
     def simulate_episode(self):
         player, infoset, valid_actions, reward, isFinished = self.env.reset()
         terminalPayoffs = []
-        reachprobs = [1 for _ in range(self.rules.players)]
+        reachprobs = [1 for _ in range(self.n_players)]
         sampleprobs = 1.0
         histories = []
         while True:
@@ -52,9 +52,9 @@ class EnvOSCFR(object):
             if (isFinished):
                 terminalPayoffs = reward
 
-                for player in range(self.rules.players):
+                for player in range(self.n_players):
                     prob = 1.0
-                    for i in range(self.rules.players):
+                    for i in range(self.n_players):
                         if i != player:
                             prob *= reachprobs[i]
                     terminalPayoffs[player] = prob * reward[player] / sampleprobs

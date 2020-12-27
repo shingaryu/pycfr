@@ -3,10 +3,10 @@ from env_oscfr import EnvOSCFR
 
 # Replicate StrategyProfile for best_response()
 class EnvOSCFRWithSP(EnvOSCFR):
-    def __init__(self, rules, env, exploration=0.4):
-        EnvOSCFR.__init__(self, rules, env, exploration)
-        self.profile = StrategyProfile(rules, [Strategy(i) for i in range(rules.players)])
-        self.current_profile = StrategyProfile(rules, [Strategy(i) for i in range(rules.players)])      
+    def __init__(self, env, exploration=0.4):
+        EnvOSCFR.__init__(self, env, 2, 3, exploration)
+        self.profile = StrategyProfile(env.rules, [Strategy(i) for i in range(env.rules.players)])
+        self.current_profile = StrategyProfile(env.rules, [Strategy(i) for i in range(env.rules.players)])      
 
     def cfr_strategy_update(self, reachprobs, sampleprobs, infoset, player, valid_actions):
         strategy = EnvOSCFR.cfr_strategy_update(self, reachprobs, sampleprobs, infoset, player, valid_actions)
