@@ -4,7 +4,9 @@ sys.path.insert(0,os.path.realpath('.'))
 from pokerstrategy import *
 from pokergames import *
 from pokercfr import *
-from pokercfr_batch import *
+from poker_env import PokerEnv
+from env_oscfr import *
+from env_oscfr_with_sp import *
 
 def near(val, expected, distance=0.0001):
     return val >= (expected - distance) and val <= (expected + distance)
@@ -22,7 +24,7 @@ kuhn = kuhn_rules()
 # cfr = OSCFRBatch(kuhn)
 env = PokerEnv(kuhn)
 # cfr = BatchOSCFR(kuhn, env)
-cfr = BatchOSCFRWithSP(kuhn, env)
+cfr = EnvOSCFRWithSP(kuhn, env)
 
 iterations_per_block = 10000
 blocks = 100
