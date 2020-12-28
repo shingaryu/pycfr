@@ -1,7 +1,7 @@
 import random
 
 class EnvOSCFR(object):
-    def __init__(self, env, n_players, n_actions, exploration=0.4):
+    def __init__(self, n_players, n_actions, exploration=0.4):
         self.sampling_strategies = [ {} for _ in range(n_players)]
         self.average_strategies = [ {} for _ in range(n_players)]        
         self.iterations = 0
@@ -10,13 +10,12 @@ class EnvOSCFR(object):
         self.exploration = exploration
         self.counterfactual_regret = [ {} for _ in range(n_players)]
         self.action_reachprobs = [ {} for _ in range(n_players)]
-        self.env = env
         self.n_players = n_players
         self.num_of_actions = n_actions
 
-    def run(self, num_iterations):
+    def run(self, env, num_iterations):
         for _ in range(num_iterations):
-            self.simulate_episode()
+            self.simulate_episode(env)
             self.iterations += 1
 
     def sample_action(self, strategy, infoset):
@@ -29,8 +28,8 @@ class EnvOSCFR(object):
                 return i
         raise Exception('Invalid probability distribution. Infoset: {0} Probs: {1}'.format(infoset, probs))
 
-    def simulate_episode(self):
-        player, infoset, valid_actions, reward, isFinished = self.env.reset()
+    def simulate_episode(self, env):
+        player, infoset, valid_actions, reward, isFinished = env.reset()
         terminalPayoffs = []
         reachprobs = [1 for _ in range(self.n_players)]
         sampleprobs = 1.0
@@ -48,7 +47,7 @@ class EnvOSCFR(object):
 
             histories.append((player, infoset, valid_actions, action, action_probs[action]))
 
-            player, infoset, valid_actions, reward, isFinished = self.env.step(action)
+            player, infoset, valid_actions, reward, isFinished = env.step(action)
             if (isFinished):
                 terminalPayoffs = reward
 
@@ -115,3 +114,11 @@ class EnvOSCFR(object):
             if action == i:
                 immediate_cfr += ev
             self.counterfactual_regret[player][infoset][i] += immediate_cfr
+
+    def fixed_strategy(self):
+        sampled_strategies = [{} for _ in range(self.n_players)]
+        for player, strategy in enumerate(self.sampling_strategies):
+            for infoset, probs in strategy.items():
+                action = self.sample_action(strategy, infoset)
+                sampled_strategies[player][infoset] = action
+        return sampled_strategies
