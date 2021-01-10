@@ -6,7 +6,7 @@ class PokerEnv(object):
         self.rules = rules
         self.tree = PublicTree(rules)
         self.tree.build()
-        print 'Information sets: {0}'.format(len(self.tree.information_sets))
+        print('Information sets: {0}'.format(len(self.tree.information_sets)))
 
         self.root = None
 
@@ -74,7 +74,7 @@ class PokerEnv(object):
                 # return self.cfr_terminal_node(self.root, reachprobs, sampleprobs)
                 # set terminal utility
                 payoffs = [0 for _ in range(self.rules.players)]
-                for hands,winnings in self.root.payoffs.items():
+                for hands,winnings in list(self.root.payoffs.items()):
                     if not self.terminal_match(hands):
                         continue
                     for player in range(self.rules.players):

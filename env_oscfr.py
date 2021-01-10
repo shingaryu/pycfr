@@ -118,7 +118,7 @@ class EnvOSCFR(object):
     def fixed_strategy(self):
         sampled_strategies = [{} for _ in range(self.n_players)]
         for player, strategy in enumerate(self.sampling_strategies):
-            for infoset, probs in strategy.items():
+            for infoset, probs in list(strategy.items()):
                 action = self.sample_action(strategy, infoset)
                 sampled_strategies[player][infoset] = action
         return sampled_strategies

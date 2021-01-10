@@ -83,7 +83,7 @@ class GameTree(object):
 
     def deal_holecards(self, deck, holecards, players):
         a = combinations(deck, holecards)
-        return filter(lambda x: all_unique(x), permutations(a, players))
+        return [x for x in permutations(a, players) if all_unique(x)]
 
     def build_rounds(self, root, players_in, committed, holes, board, deck, bet_history, round_idx, bets = None, next_player = 0):
         if round_idx == len(self.rules.roundinfo):
@@ -125,7 +125,7 @@ class GameTree(object):
                     cur_idx += 1
             for hc in cur_holes:
                 dealt_cards += hc
-            cur_deck = filter(lambda x: not (x in dealt_cards), deck)
+            cur_deck = [x for x in deck if not (x in dealt_cards)]
             if cur_round.boardcards:
                 self.build_boardcards(hnode, next_player, players_in, committed, cur_holes, board, cur_deck, bet_history, round_idx, min_actions_this_round, actions_this_round, bets)
             else:
@@ -138,7 +138,7 @@ class GameTree(object):
         all_bc = combinations(deck, cur_round.boardcards)
         for bc in all_bc:
             cur_board = board + bc
-            cur_deck = filter(lambda x: not (x in bc), deck)
+            cur_deck = [x for x in deck if not (x in bc)]
             self.build_bets(bnode, next_player, players_in, committed, holes, cur_board, cur_deck, bet_history, round_idx, min_actions_this_round, actions_this_round, bets)
         return bnode
 
@@ -230,7 +230,7 @@ class GameTree(object):
     def holecard_distributions(self):
         x = Counter(combinations(self.rules.deck, self.holecards))
         d = float(sum(x.values()))
-        return zip(x.keys(),[y / d for y in x.values()])
+        return list(zip(list(x.keys()),[y / d for y in list(x.values())]))
 
 def multi_infoset_format(base_infoset_format, player, holecards, board, bet_history):
     return tuple([base_infoset_format(player, hc, board, bet_history) for hc in holecards])
@@ -286,7 +286,7 @@ class PublicTree(GameTree):
         all_bc = combinations(deck, cur_round.boardcards)
         for bc in all_bc:
             cur_board = board + bc
-            cur_deck = filter(lambda x: not (x in bc), deck)
+            cur_deck = [x for x in deck if not (x in bc)]
             updated_holes = []
             # Filter any holecards that are now impossible
             for player in range(self.rules.players):
@@ -319,7 +319,7 @@ class PublicTree(GameTree):
     def showdown_combinations(self, holes):
         # Get all the possible holecard matchups for a given showdown.
         # Every card must be unique because two players cannot have the same holecard.
-        return list(filter(lambda x: all_unique(x), product(*holes)))
+        return list([x for x in product(*holes) if all_unique(x)])
 
     def calc_payoffs(self, hands, scores, players_in, committed, pot):        
         winners = []

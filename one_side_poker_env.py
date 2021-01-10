@@ -25,7 +25,7 @@ class OneSidePokerEnv(PokerEnv):
             # return self.cfr_terminal_node(root, reachprobs, sampleprobs)
             # set terminal utility
             payoffs = [0 for _ in range(self.rules.players)]
-            for hands,winnings in self.root.payoffs.items():
+            for hands,winnings in list(self.root.payoffs.items()):
                 if not self.terminal_match(hands):
                     continue
                 for player in range(self.rules.players):

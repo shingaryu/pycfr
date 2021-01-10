@@ -4,7 +4,7 @@ sys.path.insert(0,os.path.realpath('.'))
 from pokertrees import *
 from pokergames import *
 
-print 'Testing GameTree'
+print('Testing GameTree')
 rules = GameRules(players = 2, deck = [Card(14,1),Card(13,2),Card(13,1),Card(12,1)], rounds = [RoundInfo(holecards=1,boardcards=0,betsize=1,maxbets=[2,2]),RoundInfo(holecards=0,boardcards=1,betsize=2,maxbets=[2,2])], ante = 1, blinds = [1,2], handeval=leduc_eval)
 tree = GameTree(rules)
 tree.build()
@@ -88,9 +88,9 @@ assert(tree.root.children[0].children[1].children[0].children[0].children[0].chi
 assert(type(tree.root.children[0].children[1].children[0].children[0].children[0].children[1].children[2].children[1]) == TerminalNode)
 assert(tree.root.children[0].children[1].children[0].children[0].children[0].children[1].children[2].children[1].bet_history == '/cc/crrc')
 assert(tree.root.children[0].children[1].children[0].children[0].children[0].children[1].children[2].children[1].payoffs == [-7,7])
-print 'All passed!'
+print('All passed!')
 
-print 'Testing PublicTree'
+print('Testing PublicTree')
 tree = PublicTree(rules)
 tree.build()
 
@@ -142,7 +142,7 @@ assert(tree.root.children[0].children[1].children[0].children[0].children[1].chi
 assert(type(tree.root.children[0].children[1].children[0].children[1].children[1].children[1]) == TerminalNode)
 assert(tree.root.children[0].children[1].children[0].children[1].children[1].children[1].bet_history == '/cc/rc')
 assert(tree.root.children[0].children[1].children[0].children[1].children[1].children[1].payoffs == { ((Card(13,1),),(Card(14,1),)): [5,-5], ((Card(13,1),),(Card(12,1),)): [5,-5], ((Card(14,1),),(Card(13,1),)): [-5,5], ((Card(14,1),),(Card(12,1),)): [5,-5], ((Card(12,1),),(Card(14,1),)): [-5,5], ((Card(12,1),),(Card(13,1),)): [-5,5] })
-print 'All passed!'
+print('All passed!')
 
 
 
